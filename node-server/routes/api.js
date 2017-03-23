@@ -75,7 +75,6 @@ router.post('/login',function(req, res, next){
 	console.log("Cookie Value /login: ", req.session.user);
 	if(req.body.username)
 		res.json(success);
-
 })
 
 
@@ -175,6 +174,15 @@ router.get("/get-selected-feat", function(req, res, next){
 	})
 })
 
+router.get("/get-user-name", function(req, res, next){
+	var data = {
+		userName: req.session.username;
+	}
+
+	data = JSON.stringify(data);
+	res.json(data);
+})
+
 
 router.post("/call-build-model", function(req, res, next){
 
@@ -239,8 +247,10 @@ router.post("/call-get-models", function(req, res, next){
 			console.log("Call done!");
 		}
 
-		response = JSON.stringify(response);
-		res.json(response);
+		var responseToBeSent = response;
+		responseToBeSent.userName = req.session.username;
+		responseToBeSent = JSON.stringify(responseToBeSent);
+		res.json(responseToBeSent);
 	})
 })
 
