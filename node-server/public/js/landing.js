@@ -14,6 +14,12 @@ angular.module("nautilusLanding",[])
   }).then(function(res){
     console.log("call-get-models response: ", res);
      response = JSON.parse(res.data);
+     responseBody = JSON.parse(response.body);
+     console.log("Parsed response body: ", responseBody);
+     var modelsArrJson = responseBody.result;
+     var userName = responseBody.userName;
+
+     $scope.models = modelsArrJson;
     /* console.log("Parsed response: ", response);
     responseBody = JSON.parse(response.body);
     console.log("Parsed response body: ", responseBody); */
@@ -24,5 +30,10 @@ angular.module("nautilusLanding",[])
   },function(res){
       console.log('err : ' + res)
   })
+
+  $scope.callGetColumns = function() {
+    $scope.currentModelName = $scope.mod; // use this var in trained.js to retrieve the particular model using getColumns API call
+    $window.location.href = '/trained.html';
+  }
 
 })

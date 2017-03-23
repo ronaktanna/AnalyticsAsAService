@@ -12,9 +12,11 @@
 
     <title>Nautilus</title>
   </head>
-  <body>
-    <div ng-controller="landingController">
-
+  <body ng-controller="landingController">
+    <div>
+      <div ng-repeat="mod in models">
+        <a ng-click ="callGetColumns()" ng-model= {{ mod }}> {{ mod }} </a>
+      </div>
     </div>
 
       <script src="js/angular.js"></script>
