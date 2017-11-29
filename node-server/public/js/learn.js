@@ -70,6 +70,7 @@ angular.module("nautilus-learn", ['ngRoute','ngFileUpload'])
 
       $scope.features = {};
       $scope.filepath = "";
+      console.log("step-2");
       $http.get("/get-file-path", {}).then(function(response){
           console.log(response.data.filepath)
           $scope.filepath = response.data.filepath;

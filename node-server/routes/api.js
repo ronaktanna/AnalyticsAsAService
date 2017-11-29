@@ -3,17 +3,18 @@ var router = express.Router();
 var formidable = require('formidable');
 var fs = require('fs');
 var util = require('util');
+var sh = require('shelljs');
 var request = require('request');
-
 var mongoose = require('mongoose');
-var DB_URI = 'mongodb://admin:admin123@localhost:27017';
+var mongodb = require('mongodb');
+var DB_URI = 'mongodb://localhost:27017/AaaS';
+
+//var MongoClient = mongodb.MongoClient;
 mongoose.connect(DB_URI);
 
-
-var User = require("../models/user");
-
+var User1 = mongoose.model('User',{username:String, password:String});
 var loggedUser = "";
-
+var User = {dataPath:""};
 router.get('/', function(req, res, next){
 	res.sendFile(__dirname + "/../public/index.html");
 })
@@ -24,57 +25,47 @@ router.get('/', function(req, res, next){
 
 router.post('/login',function(req, res, next){
 	console.log("Query is : " + req.body.username);
-	/*User.findOne({username: req.body.username}, 'username password pristine', function (err, user) {
-
+	User1.findOne({username:req.body.username}, function(err, userObj){
+		if (err) {
+    console.log(err);
+  	} else if (userObj) {
+    	console.log('Found:', userObj);
+			req.session.user = userObj;
+  	} else {
+    	console.log('User not found!');
+  	}
+		console.log("Over!")
 		var failure = {
-			status : false
+			status: false
 		}
 
 		var success = {
-			status : true,
-			pristine : user.pristine
+			status: true,
+			pristine: true
 		}
 
-		if (err) res.json(failure);
-		if(user.password === req.body.password){
-			User.update({username: user.username}, {$set: {pristine: false}}, {}, function(err){});
-			loggedUser = user.username;
+		loggedUser = req.session.user.username;
+		//req.session.user = req.body;
+
+		console.log("Username is ", loggedUser);
+		req.body.username = req.session.user.username;
+		var sendingData = {
+			userName: req.body.username
+		}
+		var requestUrl = 'http://127.0.0.1:8000/Engine/dirExists/?data=' + JSON.stringify(sendingData);
+		request(requestUrl, function(error, response, body) {
+			if( !error && response.statusCode == 200) {
+				console.log("Call done!");
+			}
+
+			//console.log("/dirExists response: ", response);
+			// response = JSON.stringify(response);
+			// res.json(response);
+		})
+		console.log("Cookie Value /login: ", req.session.user);
+		if(req.body.username)
 			res.json(success);
-		}
-		else res.json(failure);
-	})*/
-
-	var failure = {
-		status: false
-	}
-
-	var success = {
-		status: true,
-		pristine: true
-	}
-
-	loggedUser = 'SBI';
-	req.session.user = req.body;
-
-	console.log(req.body);
-	req.body.username = req.session.user.username;
-	var sendingData = {
-		userName: req.body.username
-	}
-	var requestUrl = 'http://127.0.0.1:8000/Engine/dirExists/?data=' + JSON.stringify(sendingData);
-	request(requestUrl, function(error, response, body) {
-		if( !error && response.statusCode == 200) {
-			console.log("Call done! - ", response);
-		}
-
-		console.log("/dirExists response: ", response);
-		// response = JSON.stringify(response);
-		// res.json(response);
-	})
-
-	console.log("Cookie Value /login: ", req.session.user);
-	if(req.body.username)
-		res.json(success);
+	});
 })
 
 
@@ -91,14 +82,14 @@ router.post('/upload', function(req,res,next){
 		data = fs.readFileSync(files.file.path);
 
 		var idText = makeid();
-		var filepath = "/home/ronaktanna/Desktop/FinalYearProject/AnalyticsAsAService/datasets/" + idText + ".csv";
+		var filepath = sh.pwd()+"/datasets/" + idText + ".csv";
 
 		fs.writeFile(filepath , data, function(err) {
 			if(err) {
 				console.log(err);
 				res.json(failure);
 			}
-			User.findOne({username: loggedUser},function(err, user){
+			/*User.findOne({username: loggedUser},function(err, user){
 				if(err) console.log(err);
 				// original: user.dataset = filepath;
 				User.dataset = filepath;
@@ -106,18 +97,20 @@ router.post('/upload', function(req,res,next){
 					if (err) throw err;
 
 					console.log('User successfully updated!');
-				});*/
-			})
+				});
+			})*/
+			User.dataset = filepath;
 			console.log("Cookie value /upload: ", req.session.user);
 			res.json(success);
-			console.log("The file was saved!");
+			console.log("The file was saved!", User.dataset);
 		});
 	})
 })
 
 router.get("/get-file-path", function(req, res, next){
+	console.log("get-file-path");
 	if(loggedUser == "") loggedUser = 'SBI';
-	User.findOne({username: loggedUser},function(err, user){
+	/*User.findOne({username: loggedUser},function(err, user){
 				if(err) {
 					console.log(err);
 					res.json({});
@@ -125,16 +118,15 @@ router.get("/get-file-path", function(req, res, next){
 				var data = {
 					// filepath: User.dataset
 				}
-
-			/*	original: var data = {
+				original: var data = {
 					filepath : user.dataset
-				} */
-
+				}
+	 });*/
 			// original:	res.json(data);
-			res.json({filepath: User.dataset })
 			console.log("Cookie value /get-file-path: ", req.session.user);
-			console.log("The file path retrieved" + data.filepath);
-	})
+			//console.log("The file path retrieved" + data.filepath);
+			console.log(User.dataset);
+			res.json({filepath: User.dataset });
 })
 
 router.post("/save-selected-feat", function(req, res, next){
@@ -176,8 +168,8 @@ router.get("/get-selected-feat", function(req, res, next){
 
 router.get("/get-user-name", function(req, res, next){
 	var data = {
-		userName: req.session.username;
-	}
+		userName: req.session.username
+	};
 
 	data = JSON.stringify(data);
 	res.json(data);
@@ -241,7 +233,7 @@ router.post("/call-get-models", function(req, res, next){
 	var jsonData = JSON.parse(req.body.data);
 	console.log(jsonData);
 	jsonData.userName = req.session.user.username;
-	var requestUrl = 'http://127.0.0.1:8000/Engine/getModels/data='+JSON.stringify(jsonData);
+	var requestUrl = 'http://127.0.0.1:8000/Engine/getModels/?data='+JSON.stringify(jsonData);
 	request(requestUrl, function(error, response, body) {
 		if( !error && response.statusCode == 200) {
 			console.log("Call done!");
@@ -250,6 +242,7 @@ router.post("/call-get-models", function(req, res, next){
 		var responseToBeSent = response;
 		responseToBeSent.userName = req.session.username;
 		responseToBeSent = JSON.stringify(responseToBeSent);
+
 		res.json(responseToBeSent);
 	})
 })
